@@ -1,0 +1,75 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "CostExplorerAccess",
+            "Effect": "Allow",
+            "Action": [
+                "ce:GetCostAndUsage",
+                "ce:GetCostForecast",
+                "ce:GetRightsizingRecommendation",
+                "ce:GetReservationPurchaseRecommendation",
+                "ce:GetSavingsPlansUtilization",
+                "ce:GetUsageReport"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "TrustedAdvisorAccess",
+            "Effect": "Allow",
+            "Action": [
+                "support:DescribeTrustedAdvisorChecks",
+                "support:DescribeTrustedAdvisorCheckResult",
+                "support:DescribeTrustedAdvisorCheckSummaries"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "ComputeOptimizerAccess",
+            "Effect": "Allow",
+            "Action": [
+                "compute-optimizer:GetEC2InstanceRecommendations",
+                "compute-optimizer:GetAutoScalingGroupRecommendations",
+                "compute-optimizer:GetEBSVolumeRecommendations",
+                "compute-optimizer:GetLambdaFunctionRecommendations",
+                "compute-optimizer:GetEnrollmentStatus",
+                "compute-optimizer:GetRecommendationSummaries"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "WellArchitectedAccess",
+            "Effect": "Allow",
+            "Action": [
+                "wellarchitected:ListWorkloads",
+                "wellarchitected:GetWorkload",
+                "wellarchitected:ListLensReviews",
+                "wellarchitected:GetLensReview",
+                "wellarchitected:ListLensReviewImprovements",
+                "wellarchitected:GetAnswer"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "ConfigAccess",
+            "Effect": "Allow",
+            "Action": [
+                "config:GetComplianceSummaryByConfigRule",
+                "config:GetComplianceDetailsByConfigRule",
+                "config:DescribeConfigRules",
+                "config:DescribeComplianceByConfigRule"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "GeneralAccess",
+            "Effect": "Allow",
+            "Action": [
+                "sts:GetCallerIdentity",
+                "organizations:DescribeAccount",
+                "organizations:ListAccounts"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

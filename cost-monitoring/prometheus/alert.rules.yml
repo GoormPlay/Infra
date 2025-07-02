@@ -1,0 +1,20 @@
+groups:
+  - name: finops-alerts
+    interval: 1m
+    rules:
+      - alert: CostSpike
+        expr: increase(aws_cost_total[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Cost spike detected!"
+          description: "A cost spike was detected in the last 1 minute."
+      - alert: OptimizationOpportunity
+        expr: aws_optimization_savings > 0
+        for: 0m
+        labels:
+          severity: info
+        annotations:
+          summary: "Optimization opportunity detected!"
+          description: "There is an optimization opportunity (savings > 0)." 

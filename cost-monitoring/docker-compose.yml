@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # Enhanced Grafana for Cost Visualization
+  grafana-enhanced:
+    image: grafana/grafana:latest
+    container_name: grafana-enhanced-dashboard
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_FEATURE_TOGGLES_ENABLE=publicDashboards
+      - GF_INSTALL_PLUGINS=
+    volumes:
+      - grafana-enhanced-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - cost-monitoring-enhanced
+    restart: unless-stopped
+
+  # Enhanced AWS Cost Data Collector
+  aws-cost-collector-enhanced:
+    build:
+      context: ./cost-collector
+      dockerfile: Dockerfile
+    container_name: aws-cost-collector-enhanced
+    environment:
+      - AWS_REGION=${AWS_REGION:-ap-northeast-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - PROMETHEUS_PORT=8080
+      - FLASK_PORT=5000
+      - COLLECTION_INTERVAL=3600
+    ports:
+      - "8080:8080"  # Prometheus metrics
+      - "5000:5000"  # Flask API
+    volumes:
+      - ./cost-collector/config:/app/config:ro
+    networks:
+      - cost-monitoring-enhanced
+    restart: unless-stopped
+    depends_on:
+      - redis-enhanced
+
+  # Enhanced Prometheus for metrics storage
+  prometheus-enhanced:
+    image: prom/prometheus:latest
+    container_name: prometheus-enhanced
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - prometheus-enhanced-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=90d'
+      - '--web.enable-lifecycle'
+    networks:
+      - cost-monitoring-enhanced
+    restart: unless-stopped
+    depends_on:
+      - alertmanager
+
+  # Redis for enhanced caching
+  redis-enhanced:
+    image: redis:alpine
+    container_name: redis-enhanced-cache
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-enhanced-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - cost-monitoring-enhanced
+    restart: unless-stopped
+
+  # Alertmanager for Prometheus alerts
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - cost-monitoring-enhanced
+    restart: unless-stopped
+
+volumes:
+  grafana-enhanced-data:
+  prometheus-enhanced-data:
+  redis-enhanced-data:
+  alertmanager-data:
+
+networks:
+  cost-monitoring-enhanced:
+    driver: bridge
