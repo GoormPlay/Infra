@@ -12,19 +12,14 @@ mkdir -p /app
 chown ubuntu:ubuntu /app
 
 echo "⬇️ JAR 파일 다운로드"
-# S3 버킷과 JAR 파일명을 환경변수로 설정
-S3_BUCKET=${S3_BUCKET:-"your-s3-bucket-name"}
-JAR_FILE=${JAR_FILE:-"apigateway-service-0.0.1-SNAPSHOT.jar"}
-aws s3 cp s3://${S3_BUCKET}/${JAR_FILE} /app/application.jar
-
-
+aws s3 cp s3://${S3_BUCKET:-your-s3-bucket-name}/auth-service-0.0.1-SNAPSHOT.jar /app/application.jar
 
 chmod +x /app/application.jar
 
 echo "🛠️ systemd 서비스 등록"
-cat << EOF > /etc/systemd/system/application.service
+cat << EOFS > /etc/systemd/system/application.service
 [Unit]
-Description=Spring Boot Application
+Description=Authentication Service
 After=network.target
 
 [Service]
@@ -33,15 +28,19 @@ User=ubuntu
 WorkingDirectory=/app
 ExecStart=/usr/bin/java -jar /app/application.jar
 Restart=always
+Environment="SPRING_PROFILES_ACTIVE=prod"
+Environment="MYSQL_HOST=database-2.cb2k00gyymbm.ap-northeast-2.rds.amazonaws.com"
+Environment="MYSQL_USER=admin"
+Environment="MYSQL_PASSWORD=${MYSQL_PASSWORD:-secure_password_here}"
+Environment="EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://gpadmin:1234@43.203.16.147:8761/eureka,http://gpadmin:1234@3.34.119.43:8761/eureka"
 
 [Install]
 WantedBy=multi-user.target
-EOF
+EOFS
 
 echo "✅ 서비스 시작"
 sudo systemctl daemon-reload
 sudo systemctl enable application
 sudo systemctl start application
-
 
 echo "✅ User Data 스크립트 완료!"
