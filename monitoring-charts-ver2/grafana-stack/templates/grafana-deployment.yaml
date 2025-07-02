@@ -1,0 +1,200 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-grafana
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "grafana-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: grafana
+  template:
+    metadata:
+      labels:
+        {{- include "grafana-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: grafana
+    spec:
+      serviceAccountName: {{ include "grafana-stack.serviceAccountName" . }}
+      securityContext:
+        fsGroup: 472
+        runAsGroup: 472
+        runAsUser: 472
+      containers:
+        - name: grafana
+          image: "{{ .Values.grafana.image.repository }}:{{ .Values.grafana.image.tag }}"
+          imagePullPolicy: {{ .Values.grafana.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: {{ .Values.grafana.adminUser | quote }}
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: {{ .Values.grafana.adminPassword | quote }}
+            - name: GF_PATHS_DATA
+              value: /var/lib/grafana/
+            - name: GF_PATHS_LOGS
+              value: /var/log/grafana
+            - name: GF_PATHS_PLUGINS
+              value: /var/lib/grafana/plugins
+            - name: GF_PATHS_PROVISIONING
+              value: /etc/grafana/provisioning
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/grafana
+            - name: config
+              mountPath: /etc/grafana/grafana.ini
+              subPath: grafana.ini
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboards-provisioning
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboards-kubernetes
+              mountPath: /var/lib/grafana/dashboards/kubernetes
+            - name: dashboards-monitoring
+              mountPath: /var/lib/grafana/dashboards/monitoring
+            - name: dashboards-applications
+              mountPath: /var/lib/grafana/dashboards/applications
+            {{- if .Values.grafana.sidecar.dashboards.enabled }}
+            - name: sc-dashboard-volume
+              mountPath: {{ .Values.grafana.sidecar.dashboards.folder | quote }}
+            {{- end }}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            {{- toYaml .Values.grafana.resources | nindent 12 }}
+        {{- if .Values.grafana.sidecar.enabled }}
+        {{- if .Values.grafana.sidecar.datasources.enabled }}
+        - name: grafana-sc-datasources
+          image: "{{ .Values.grafana.sidecar.image.repository }}:{{ .Values.grafana.sidecar.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: METHOD
+              value: WATCH
+            - name: LABEL
+              value: {{ .Values.grafana.sidecar.datasources.label | quote }}
+            - name: LABEL_VALUE
+              value: {{ .Values.grafana.sidecar.datasources.labelValue | quote }}
+            - name: FOLDER
+              value: {{ .Values.grafana.sidecar.datasources.folder | quote }}
+            - name: RESOURCE
+              value: both
+            - name: NAMESPACE
+              value: {{ .Values.grafana.sidecar.datasources.searchNamespace | quote }}
+            - name: REQ_USERNAME
+              value: {{ .Values.grafana.adminUser | quote }}
+            - name: REQ_PASSWORD
+              value: {{ .Values.grafana.adminPassword | quote }}
+            - name: REQ_URL
+              value: http://localhost:3000/api/admin/provisioning/datasources/reload
+            - name: REQ_METHOD
+              value: POST
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 50m
+              memory: 50Mi
+          volumeMounts:
+            - name: datasources
+              mountPath: {{ .Values.grafana.sidecar.datasources.folder | quote }}
+        {{- end }}
+        {{- if .Values.grafana.sidecar.dashboards.enabled }}
+        - name: grafana-sc-dashboard
+          image: "{{ .Values.grafana.sidecar.image.repository }}:{{ .Values.grafana.sidecar.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: METHOD
+              value: WATCH
+            - name: LABEL
+              value: {{ .Values.grafana.sidecar.dashboards.label | quote }}
+            - name: LABEL_VALUE
+              value: {{ .Values.grafana.sidecar.dashboards.labelValue | quote }}
+            - name: FOLDER
+              value: {{ .Values.grafana.sidecar.dashboards.folder | quote }}
+            - name: RESOURCE
+              value: both
+            - name: NAMESPACE
+              value: {{ .Values.grafana.sidecar.dashboards.searchNamespace | quote }}
+            {{- if .Values.grafana.sidecar.dashboards.folderAnnotation }}
+            - name: FOLDER_ANNOTATION
+              value: {{ .Values.grafana.sidecar.dashboards.folderAnnotation | quote }}
+            {{- end }}
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 50m
+              memory: 50Mi
+          volumeMounts:
+            - name: sc-dashboard-volume
+              mountPath: {{ .Values.grafana.sidecar.dashboards.folder | quote }}
+        {{- end }}
+        {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "grafana-stack.fullname" . }}-grafana-config
+        - name: datasources
+          configMap:
+            name: {{ include "grafana-stack.fullname" . }}-provisioning-datasources
+        - name: dashboards-provisioning
+          configMap:
+            name: {{ include "grafana-stack.fullname" . }}-provisioning-dashboards
+        - name: dashboards-kubernetes
+          configMap:
+            name: {{ include "grafana-stack.fullname" . }}-dashboards-kubernetes
+        - name: dashboards-monitoring
+          configMap:
+            name: {{ include "grafana-stack.fullname" . }}-dashboards-monitoring
+        - name: dashboards-applications
+          configMap:
+            name: {{ include "grafana-stack.fullname" . }}-dashboards-applications
+        {{- if .Values.grafana.sidecar.dashboards.enabled }}
+        - name: sc-dashboard-volume
+          emptyDir: {}
+        {{- end }}
+        - name: storage
+        {{- if .Values.grafana.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "grafana-stack.fullname" . }}-grafana-pvc
+        {{- else }}
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.grafana.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.grafana.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.grafana.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -1,0 +1,165 @@
+{{- if .Values.prometheus.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "prometheus-stack.fullname" . }}-prometheus-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "prometheus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ .Values.global.scrapeInterval }}
+      evaluation_interval: {{ .Values.global.evaluationInterval }}
+      {{- if .Values.externalLabels }}
+      external_labels:
+        {{- toYaml .Values.externalLabels | nindent 8 }}
+      {{- end }}
+
+    {{- if .Values.prometheus.alertmanager.enabled }}
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - {{ .Values.prometheus.alertmanager.url }}
+    {{- end }}
+
+    {{- if .Values.ruleFiles.enabled }}
+    rule_files:
+      - "/etc/prometheus/rules/*.yml"
+    {{- end }}
+
+    scrape_configs:
+      {{- if .Values.scrapeConfigs.prometheus.enabled }}
+      - job_name: 'prometheus'
+        scrape_interval: {{ .Values.scrapeConfigs.prometheus.interval }}
+        metrics_path: {{ .Values.scrapeConfigs.prometheus.path }}
+        static_configs:
+          - targets: ['localhost:9090']
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'prometheus_.*'
+            target_label: service
+            replacement: 'prometheus'
+      {{- end }}
+
+      {{- if .Values.scrapeConfigs.kubernetesApiServer.enabled }}
+      - job_name: 'kubernetes-apiservers'
+        scrape_interval: {{ .Values.scrapeConfigs.kubernetesApiServer.interval }}
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+          - target_label: service
+            replacement: 'kubernetes-apiserver'
+      {{- end }}
+
+      {{- if .Values.scrapeConfigs.kubernetesNodes.enabled }}
+      - job_name: 'kubernetes-nodes'
+        scrape_interval: {{ .Values.scrapeConfigs.kubernetesNodes.interval }}
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics
+          - target_label: service
+            replacement: 'kubernetes-node'
+      {{- end }}
+
+      {{- if and .Values.nodeExporter.enabled .Values.scrapeConfigs.kubernetesNodes.enabled }}
+      - job_name: 'kubernetes-nodes-exporter'
+        scrape_interval: {{ .Values.scrapeConfigs.kubernetesNodes.interval }}
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - source_labels: [__meta_kubernetes_node_address_InternalIP]
+            target_label: __address__
+            replacement: '${1}:{{ .Values.nodeExporter.service.port }}'
+          - target_label: service
+            replacement: 'node-exporter'
+      {{- end }}
+
+      {{- if and .Values.kubeStateMetrics.enabled }}
+      - job_name: 'kube-state-metrics'
+        scrape_interval: {{ .Values.global.scrapeInterval }}
+        static_configs:
+          - targets: ['{{ .Values.kubeStateMetrics.service.name }}.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.kubeStateMetrics.service.port }}']
+        metric_relabel_configs:
+          - target_label: service
+            replacement: 'kube-state-metrics'
+      {{- end }}
+
+      {{- if .Values.scrapeConfigs.kubernetesPods.enabled }}
+      - job_name: 'kubernetes-pods'
+        scrape_interval: {{ .Values.scrapeConfigs.kubernetesPods.interval }}
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          {{- if .Values.scrapeConfigs.kubernetesPods.relabelConfigs }}
+          {{- toYaml .Values.scrapeConfigs.kubernetesPods.relabelConfigs | nindent 10 }}
+          {{- end }}
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: service
+      {{- end }}
+
+      {{- if .Values.scrapeConfigs.kubernetesServices.enabled }}
+      - job_name: 'kubernetes-services'
+        scrape_interval: {{ .Values.scrapeConfigs.kubernetesServices.interval }}
+        kubernetes_sd_configs:
+          - role: service
+        relabel_configs:
+          {{- if .Values.scrapeConfigs.kubernetesServices.relabelConfigs }}
+          {{- toYaml .Values.scrapeConfigs.kubernetesServices.relabelConfigs | nindent 10 }}
+          {{- end }}
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: service
+      {{- end }}
+
+      {{- if .Values.additionalScrapeConfigs }}
+      {{- toYaml .Values.additionalScrapeConfigs | nindent 6 }}
+      {{- end }}
+
+    {{- if .Values.remoteWrite.enabled }}
+    remote_write:
+      {{- toYaml .Values.remoteWrite.configs | nindent 6 }}
+    {{- end }}
+
+    {{- if .Values.remoteRead.enabled }}
+    remote_read:
+      {{- toYaml .Values.remoteRead.configs | nindent 6 }}
+    {{- end }}
+{{- end }}

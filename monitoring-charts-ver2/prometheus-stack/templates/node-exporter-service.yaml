@@ -1,0 +1,20 @@
+{{- if .Values.nodeExporter.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.nodeExporter.service.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "prometheus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: node-exporter
+spec:
+  type: {{ .Values.nodeExporter.service.type }}
+  ports:
+  - port: {{ .Values.nodeExporter.service.port }}
+    targetPort: {{ .Values.nodeExporter.service.targetPort }}
+    protocol: TCP
+    name: metrics
+  selector:
+    {{- include "prometheus-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: node-exporter
+{{- end }}

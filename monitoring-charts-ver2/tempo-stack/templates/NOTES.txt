@@ -1,0 +1,40 @@
+1. Get the application URL by running these commands:
+{{- if .Values.tempo.enabled }}
+
+  Tempo is available at:
+  - OTLP gRPC: tempo.{{ .Values.global.namespace }}.svc.cluster.local:{{ index .Values.tempo.service.ports "otlp-grpc" }}
+  - OTLP HTTP: tempo.{{ .Values.global.namespace }}.svc.cluster.local:{{ index .Values.tempo.service.ports "otlp-http" }}
+  - HTTP API: tempo.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.tempo.service.ports.http }}
+
+{{- end }}
+{{- if .Values.otelCollector.enabled }}
+
+  OpenTelemetry Collector is available at:
+  - OTLP gRPC: {{ .Values.otelCollector.service.name }}.{{ .Values.global.namespace }}.svc.cluster.local:{{ index .Values.otelCollector.service.ports "otlp-grpc" }}
+  - OTLP HTTP: {{ .Values.otelCollector.service.name }}.{{ .Values.global.namespace }}.svc.cluster.local:{{ index .Values.otelCollector.service.ports "otlp-http" }}
+  - Health Check: {{ .Values.otelCollector.service.name }}.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.otelCollector.service.ports.health }}
+
+{{- end }}
+
+2. To send traces to the OpenTelemetry Collector, configure your applications to use:
+   - OTLP gRPC endpoint: {{ .Values.otelCollector.service.name }}.{{ .Values.global.namespace }}.svc.cluster.local:{{ index .Values.otelCollector.service.ports "otlp-grpc" }}
+   - OTLP HTTP endpoint: http://{{ .Values.otelCollector.service.name }}.{{ .Values.global.namespace }}.svc.cluster.local:{{ index .Values.otelCollector.service.ports "otlp-http" }}
+
+3. To query traces from Tempo, use the Tempo HTTP API:
+   - Query endpoint: http://tempo.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.tempo.service.ports.http }}
+
+4. Configuration:
+   - Trace retention period: {{ .Values.tempo.retention.period }}
+   - Storage backend: {{ .Values.tempo.storage.backend }}
+   {{- if eq .Values.tempo.storage.backend "local" }}
+   - Local storage path: {{ .Values.tempo.storage.local.path }}
+   {{- end }}
+
+5. For Grafana integration, add Tempo as a data source with URL:
+   http://tempo.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.tempo.service.ports.http }}
+
+{{- if .Values.serviceMonitor.enabled }}
+
+6. ServiceMonitor is enabled for Prometheus scraping of OpenTelemetry Collector metrics.
+
+{{- end }}

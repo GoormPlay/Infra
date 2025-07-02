@@ -1,0 +1,54 @@
+{{- if .Values.otelCollector.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tempo-stack.fullname" . }}-otel-collector-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "tempo-stack.otelCollector.labels" . | nindent 4 }}
+data:
+  otel-collector.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: {{ .Values.otelCollector.config.receivers.otlp.protocols.grpc.endpoint }}
+          http:
+            endpoint: {{ .Values.otelCollector.config.receivers.otlp.protocols.http.endpoint }}
+    
+    processors:
+      batch:
+        timeout: {{ .Values.otelCollector.config.processors.batch.timeout }}
+        send_batch_size: {{ .Values.otelCollector.config.processors.batch.send_batch_size }}
+        send_batch_max_size: {{ .Values.otelCollector.config.processors.batch.send_batch_max_size }}
+      
+      memory_limiter:
+        limit_mib: {{ .Values.otelCollector.config.processors.memory_limiter.limit_mib }}
+        spike_limit_mib: {{ .Values.otelCollector.config.processors.memory_limiter.spike_limit_mib }}
+        check_interval: {{ .Values.otelCollector.config.processors.memory_limiter.check_interval }}
+    
+    exporters:
+      otlp:
+        endpoint: {{ .Values.otelCollector.config.exporters.otlp.endpoint }}
+        tls:
+          insecure: {{ .Values.otelCollector.config.exporters.otlp.tls.insecure }}
+    
+    extensions:
+      health_check:
+        endpoint: {{ .Values.otelCollector.config.extensions.health_check.endpoint }}
+      pprof:
+        endpoint: {{ .Values.otelCollector.config.extensions.pprof.endpoint }}
+      zpages:
+        endpoint: {{ .Values.otelCollector.config.extensions.zpages.endpoint }}
+    
+    service:
+      extensions: {{ .Values.otelCollector.config.service.extensions | toJson }}
+      pipelines:
+        traces:
+          receivers: {{ .Values.otelCollector.config.service.pipelines.traces.receivers | toJson }}
+          processors: {{ .Values.otelCollector.config.service.pipelines.traces.processors | toJson }}
+          exporters: {{ .Values.otelCollector.config.service.pipelines.traces.exporters | toJson }}
+      telemetry:
+        metrics:
+          address: {{ .Values.otelCollector.config.service.telemetry.metrics.address }}
+{{- end }}

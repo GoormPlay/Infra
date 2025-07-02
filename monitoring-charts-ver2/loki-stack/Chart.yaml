@@ -1,0 +1,18 @@
+apiVersion: v2
+name: loki-stack
+description: A Helm chart for Loki logging stack with Fluent Bit log collection
+type: application
+version: 0.1.0
+appVersion: "2.9.0"
+keywords:
+  - loki
+  - logging
+  - fluent-bit
+  - observability
+home: https://grafana.com/oss/loki/
+sources:
+  - https://github.com/grafana/loki
+  - https://github.com/fluent/fluent-bit
+maintainers:
+  - name: Observability Team
+    email: observability@company.com

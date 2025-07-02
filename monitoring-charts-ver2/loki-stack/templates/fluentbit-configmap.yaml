@@ -1,0 +1,146 @@
+{{- if .Values.fluentbit.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-fluent-bit-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "loki-stack.fluentbit.labels" . | nindent 4 }}
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         {{ .Values.fluentbit.config.service.flush }}
+        Log_Level     {{ .Values.fluentbit.config.service.log_level }}
+        Daemon        {{ .Values.fluentbit.config.service.daemon }}
+        Parsers_File  {{ .Values.fluentbit.config.service.parsers_file }}
+        HTTP_Server   {{ .Values.fluentbit.config.service.http_server }}
+        HTTP_Listen   {{ .Values.fluentbit.config.service.http_listen }}
+        HTTP_Port     {{ .Values.fluentbit.config.service.http_port }}
+
+    {{- range .Values.fluentbit.config.inputs }}
+    [INPUT]
+        Name              {{ .name }}
+        {{- if .path }}
+        Path              {{ .path }}
+        {{- end }}
+        {{- if .parser }}
+        Parser            {{ .parser }}
+        {{- end }}
+        {{- if .tag }}
+        Tag               {{ .tag }}
+        {{- end }}
+        {{- if .refresh_interval }}
+        Refresh_Interval  {{ .refresh_interval }}
+        {{- end }}
+        {{- if .mem_buf_limit }}
+        Mem_Buf_Limit     {{ .mem_buf_limit }}
+        {{- end }}
+        {{- if .skip_long_lines }}
+        Skip_Long_Lines   {{ .skip_long_lines }}
+        {{- end }}
+        {{- if .db }}
+        DB                {{ .db }}
+        DB.Sync           Normal
+        {{- end }}
+    {{- end }}
+
+    {{- range .Values.fluentbit.config.filters }}
+    [FILTER]
+        Name                {{ .name }}
+        Match               {{ .match }}
+        {{- if .kube_url }}
+        Kube_URL            {{ .kube_url }}
+        {{- end }}
+        {{- if .kube_ca_file }}
+        Kube_CA_File        {{ .kube_ca_file }}
+        {{- end }}
+        {{- if .kube_token_file }}
+        Kube_Token_File     {{ .kube_token_file }}
+        {{- end }}
+        {{- if .kube_tag_prefix }}
+        Kube_Tag_Prefix     {{ .kube_tag_prefix }}
+        {{- end }}
+        {{- if .merge_log }}
+        Merge_Log           {{ .merge_log }}
+        {{- end }}
+        {{- if .merge_log_key }}
+        Merge_Log_Key       {{ .merge_log_key }}
+        {{- end }}
+        {{- if .k8s_logging_parser }}
+        K8S-Logging.Parser  {{ .k8s_logging_parser }}
+        {{- end }}
+        {{- if .k8s_logging_exclude }}
+        K8S-Logging.Exclude {{ .k8s_logging_exclude }}
+        {{- end }}
+        {{- if .annotations }}
+        Annotations         {{ .annotations }}
+        {{- end }}
+        {{- if .labels }}
+        Labels              {{ .labels }}
+        {{- end }}
+        {{- if .key_name }}
+        Key_Name            {{ .key_name }}
+        {{- end }}
+        {{- if .parser }}
+        Parser              {{ .parser }}
+        {{- end }}
+        {{- if .reserve_data }}
+        Reserve_Data        {{ .reserve_data }}
+        {{- end }}
+        {{- if .preserve_key }}
+        Preserve_Key        {{ .preserve_key }}
+        {{- end }}
+        {{- if .regex }}
+        Regex               {{ .regex }}
+        {{- end }}
+        {{- if .add }}
+        Add                 {{ .add }}
+        {{- end }}
+    {{- end }}
+
+    {{- range .Values.fluentbit.config.outputs }}
+    [OUTPUT]
+        Name            {{ .name }}
+        Match           {{ .match }}
+        {{- if .host }}
+        Host            {{ .host }}
+        {{- end }}
+        {{- if .port }}
+        Port            {{ .port }}
+        {{- end }}
+        {{- if .labels }}
+        Labels          {{ .labels }}
+        {{- end }}
+        {{- if .label_keys }}
+        Label_keys      {{ .label_keys }}
+        {{- end }}
+        {{- if .remove_keys }}
+        Remove_keys     {{ .remove_keys }}
+        {{- end }}
+        {{- if .line_format }}
+        Line_format     {{ .line_format }}
+        {{- end }}
+        {{- if .auto_kubernetes_labels }}
+        Auto_kubernetes_labels {{ .auto_kubernetes_labels }}
+        {{- end }}
+    {{- end }}
+
+  parsers.conf: |
+    {{- range .Values.fluentbit.config.parsers }}
+    [PARSER]
+        Name        {{ .name }}
+        Format      {{ .format }}
+        {{- if .time_key }}
+        Time_Key    {{ .time_key }}
+        {{- end }}
+        {{- if .time_format }}
+        Time_Format {{ .time_format }}
+        {{- end }}
+        {{- if .time_keep }}
+        Time_Keep   {{ .time_keep }}
+        {{- end }}
+        {{- if .decode_field_as }}
+        Decode_Field_As {{ .decode_field_as }}
+        {{- end }}
+    {{- end }}
+{{- end }}

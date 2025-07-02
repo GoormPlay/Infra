@@ -1,0 +1,82 @@
+# Development Configuration Example for Grafana Stack
+
+# Grafana Configuration
+grafana:
+  enabled: true
+  
+  # Simple admin credentials for development
+  adminUser: admin
+  adminPassword: admin123
+  
+  # Use LoadBalancer for easy access in development
+  loadBalancer:
+    enabled: true
+  
+  # Minimal resources for development
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # Disable persistence for development (faster startup)
+  persistence:
+    enabled: false
+  
+  # Enable sidecar for testing
+  sidecar:
+    enabled: true
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+
+# Alertmanager Configuration
+alertmanager:
+  enabled: true
+  
+  # Simple configuration for development
+  config:
+    global:
+      slack_api_url: ''  # Leave empty for development
+    
+    route:
+      group_by: ['alertname']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'dev-webhook'
+    
+    receivers:
+      - name: 'dev-webhook'
+        # Just log alerts in development
+        webhook_configs:
+          - url: 'http://localhost:5001/'
+            send_resolved: true
+  
+  # Minimal resources for development
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  
+  # Disable persistence for development
+  persistence:
+    enabled: false
+
+# Global settings
+global:
+  namespace: observability
+
+# Disable ServiceMonitor in development
+serviceMonitor:
+  enabled: false

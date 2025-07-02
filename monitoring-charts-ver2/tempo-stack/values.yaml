@@ -1,0 +1,221 @@
+# Default values for tempo-stack.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global settings
+global:
+  namespace: observability
+
+# Tempo configuration
+tempo:
+  enabled: true
+  image:
+    repository: grafana/tempo
+    tag: "2.3.0"
+    pullPolicy: IfNotPresent
+  
+  # Service configuration
+  service:
+    name: tempo
+    type: ClusterIP
+    ports:
+      # OTLP gRPC port
+      otlp-grpc: 4317
+      # OTLP HTTP port  
+      otlp-http: 4318
+      # Tempo HTTP port
+      http: 3200
+      # Jaeger gRPC port
+      jaeger-grpc: 14250
+      # Jaeger HTTP port
+      jaeger-http: 14268
+  
+  # Storage configuration
+  storage:
+    # Storage backend: local, s3, gcs, azure
+    backend: local
+    # Local storage configuration
+    local:
+      path: /var/tempo
+    # S3 storage configuration (when backend is s3)
+    s3:
+      bucket: ""
+      endpoint: ""
+      access_key: ""
+      secret_key: ""
+      region: ""
+      insecure: false
+  
+  # Retention configuration
+  retention:
+    # Retention period for traces (default: 72h = 3 days as per requirements)
+    period: 72h
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  
+  # Persistence configuration
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+    accessMode: ReadWriteOnce
+  
+  # Configuration for tempo.yaml
+  config:
+    server:
+      http_listen_port: 3200
+      grpc_listen_port: 9095
+    
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+        jaeger:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:14250
+            thrift_http:
+              endpoint: 0.0.0.0:14268
+    
+    ingester:
+      max_block_duration: 5m
+    
+    compactor:
+      compaction:
+        block_retention: 72h  # Will be overridden by values.tempo.retention.period
+    
+    storage:
+      trace:
+        backend: local  # Will be overridden by values.tempo.storage.backend
+        local:
+          path: /var/tempo
+        pool:
+          max_workers: 100
+          queue_depth: 10000
+
+# OpenTelemetry Collector configuration
+otelCollector:
+  enabled: true
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.89.0"
+    pullPolicy: IfNotPresent
+  
+  # Service configuration
+  service:
+    name: otel-collector
+    type: ClusterIP
+    ports:
+      # OTLP gRPC receiver
+      otlp-grpc: 4317
+      # OTLP HTTP receiver
+      otlp-http: 4318
+      # Health check
+      health: 13133
+      # Metrics
+      metrics: 8888
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+  
+  # Configuration for otel-collector
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+        send_batch_max_size: 2048
+      
+      memory_limiter:
+        limit_mib: 512
+        spike_limit_mib: 128
+        check_interval: 5s
+    
+    exporters:
+      otlp:
+        endpoint: tempo.observability.svc.cluster.local:4317
+        tls:
+          insecure: true
+    
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      pprof:
+        endpoint: 0.0.0.0:1777
+      zpages:
+        endpoint: 0.0.0.0:55679
+    
+    service:
+      extensions: [health_check, pprof, zpages]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp]
+      telemetry:
+        metrics:
+          address: 0.0.0.0:8888
+
+# ServiceMonitor for Prometheus scraping (if prometheus-operator is available)
+serviceMonitor:
+  enabled: false
+  labels: {}
+  interval: 30s
+  scrapeTimeout: 10s
+
+# Pod Security Context
+podSecurityContext:
+  fsGroup: 10001
+  runAsGroup: 10001
+  runAsNonRoot: true
+  runAsUser: 10001
+
+# Security Context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels
+podLabels: {}

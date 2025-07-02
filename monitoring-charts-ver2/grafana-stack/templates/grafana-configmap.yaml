@@ -1,0 +1,63 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-grafana-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+  grafana.ini: |
+    [server]
+    root_url = {{ .Values.grafana.config.server.root_url }}
+    serve_from_sub_path = {{ .Values.grafana.config.server.serve_from_sub_path }}
+    
+    [security]
+    admin_user = {{ .Values.grafana.config.security.admin_user }}
+    admin_password = {{ .Values.grafana.config.security.admin_password }}
+    
+    [database]
+    type = {{ .Values.grafana.config.database.type }}
+    
+    [session]
+    provider = {{ .Values.grafana.config.session.provider }}
+    
+    [analytics]
+    reporting_enabled = {{ .Values.grafana.config.analytics.reporting_enabled }}
+    check_for_updates = {{ .Values.grafana.config.analytics.check_for_updates }}
+    
+    [log]
+    mode = {{ .Values.grafana.config.log.mode }}
+    level = {{ .Values.grafana.config.log.level }}
+    
+    [paths]
+    data = /var/lib/grafana/
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+{{- end }}
+
+---
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-grafana-dashboards-provisioning
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: {{ .Values.grafana.sidecar.dashboards.provider.name }}
+        orgId: {{ .Values.grafana.sidecar.dashboards.provider.orgId }}
+        folder: '{{ .Values.grafana.sidecar.dashboards.provider.folder }}'
+        type: {{ .Values.grafana.sidecar.dashboards.provider.type }}
+        disableDeletion: {{ .Values.grafana.sidecar.dashboards.provider.disableDeletion }}
+        allowUiUpdates: {{ .Values.grafana.sidecar.dashboards.provider.allowUiUpdates }}
+        options:
+          path: {{ .Values.grafana.sidecar.dashboards.folder }}
+{{- end }}

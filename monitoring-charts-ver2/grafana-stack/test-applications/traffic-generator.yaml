@@ -1,0 +1,176 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-generator
+  namespace: observability
+  labels:
+    app: traffic-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic-generator
+  template:
+    metadata:
+      labels:
+        app: traffic-generator
+    spec:
+      containers:
+      - name: traffic-generator
+        image: python:3.9-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install requests structlog
+          cat > /traffic_gen.py << 'EOF'
+          import requests
+          import time
+          import random
+          import json
+          import structlog
+          import threading
+          from concurrent.futures import ThreadPoolExecutor
+
+          # Configure structured logging
+          structlog.configure(
+              processors=[
+                  structlog.stdlib.filter_by_level,
+                  structlog.stdlib.add_logger_name,
+                  structlog.stdlib.add_log_level,
+                  structlog.stdlib.PositionalArgumentsFormatter(),
+                  structlog.processors.TimeStamper(fmt="iso"),
+                  structlog.processors.StackInfoRenderer(),
+                  structlog.processors.format_exc_info,
+                  structlog.processors.JSONRenderer()
+              ],
+              context_class=dict,
+              logger_factory=structlog.stdlib.LoggerFactory(),
+              wrapper_class=structlog.stdlib.BoundLogger,
+              cache_logger_on_first_use=True,
+          )
+
+          logger = structlog.get_logger()
+
+          class TrafficGenerator:
+              def __init__(self):
+                  self.base_url = "http://test-app.observability.svc.cluster.local:8080"
+                  self.endpoints = [
+                      {"method": "GET", "path": "/health", "weight": 30},
+                      {"method": "GET", "path": "/api/users", "weight": 25},
+                      {"method": "POST", "path": "/api/orders", "weight": 20},
+                      {"method": "GET", "path": "/api/slow", "weight": 5},
+                  ]
+                  self.running = True
+                  
+              def weighted_choice(self):
+                  total_weight = sum(ep["weight"] for ep in self.endpoints)
+                  r = random.uniform(0, total_weight)
+                  upto = 0
+                  for ep in self.endpoints:
+                      if upto + ep["weight"] >= r:
+                          return ep
+                      upto += ep["weight"]
+                  return self.endpoints[-1]
+              
+              def make_request(self):
+                  try:
+                      endpoint = self.weighted_choice()
+                      url = f"{self.base_url}{endpoint['path']}"
+                      
+                      if endpoint["method"] == "POST":
+                          payload = {
+                              "item": f"item_{random.randint(1, 100)}",
+                              "quantity": random.randint(1, 10),
+                              "user_id": f"user_{random.randint(1, 1000)}"
+                          }
+                          response = requests.post(url, json=payload, timeout=10)
+                      else:
+                          response = requests.get(url, timeout=10)
+                      
+                      logger.info("Request completed",
+                                method=endpoint["method"],
+                                path=endpoint["path"],
+                                status_code=response.status_code,
+                                response_time=response.elapsed.total_seconds())
+                      
+                  except requests.exceptions.Timeout:
+                      logger.error("Request timeout",
+                                 method=endpoint["method"],
+                                 path=endpoint["path"],
+                                 error="timeout")
+                  except requests.exceptions.RequestException as e:
+                      logger.error("Request failed",
+                                 method=endpoint["method"],
+                                 path=endpoint["path"],
+                                 error=str(e))
+                  except Exception as e:
+                      logger.error("Unexpected error",
+                                 error=str(e))
+              
+              def generate_normal_traffic(self):
+                  """Generate normal traffic pattern"""
+                  while self.running:
+                      self.make_request()
+                      # Normal traffic: 1-3 requests per second
+                      time.sleep(random.uniform(0.3, 1.0))
+              
+              def generate_burst_traffic(self):
+                  """Generate burst traffic every 5 minutes"""
+                  while self.running:
+                      time.sleep(300)  # Wait 5 minutes
+                      logger.info("Starting traffic burst")
+                      
+                      # Generate burst for 30 seconds
+                      burst_end = time.time() + 30
+                      while time.time() < burst_end and self.running:
+                          self.make_request()
+                          time.sleep(random.uniform(0.1, 0.3))  # High frequency
+                      
+                      logger.info("Traffic burst completed")
+              
+              def generate_error_scenarios(self):
+                  """Generate specific error scenarios"""
+                  while self.running:
+                      time.sleep(random.uniform(60, 180))  # Every 1-3 minutes
+                      
+                      # Generate multiple requests to slow endpoint
+                      for _ in range(random.randint(3, 8)):
+                          try:
+                              requests.get(f"{self.base_url}/api/slow", timeout=10)
+                              time.sleep(0.5)
+                          except:
+                              pass
+                      
+                      logger.info("Error scenario completed")
+              
+              def start(self):
+                  logger.info("Starting traffic generator")
+                  
+                  with ThreadPoolExecutor(max_workers=4) as executor:
+                      # Submit different traffic patterns
+                      executor.submit(self.generate_normal_traffic)
+                      executor.submit(self.generate_burst_traffic)
+                      executor.submit(self.generate_error_scenarios)
+                      
+                      try:
+                          # Keep the main thread alive
+                          while self.running:
+                              time.sleep(1)
+                      except KeyboardInterrupt:
+                          logger.info("Stopping traffic generator")
+                          self.running = False
+
+          if __name__ == "__main__":
+              generator = TrafficGenerator()
+              generator.start()
+          EOF
+          
+          python /traffic_gen.py
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi

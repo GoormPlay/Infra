@@ -1,0 +1,34 @@
+{{- if .Values.tempo.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.tempo.service.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "tempo-stack.tempo.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.tempo.service.type }}
+  ports:
+    - port: {{ .Values.tempo.service.ports.http }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ index .Values.tempo.service.ports "otlp-grpc" }}
+      targetPort: otlp-grpc
+      protocol: TCP
+      name: otlp-grpc
+    - port: {{ index .Values.tempo.service.ports "otlp-http" }}
+      targetPort: otlp-http
+      protocol: TCP
+      name: otlp-http
+    - port: {{ index .Values.tempo.service.ports "jaeger-grpc" }}
+      targetPort: jaeger-grpc
+      protocol: TCP
+      name: jaeger-grpc
+    - port: {{ index .Values.tempo.service.ports "jaeger-http" }}
+      targetPort: jaeger-http
+      protocol: TCP
+      name: jaeger-http
+  selector:
+    {{- include "tempo-stack.tempo.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,24 @@
+{{- if .Values.alertmanager.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-alertmanager
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+  {{- with .Values.alertmanager.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.alertmanager.service.type }}
+  ports:
+    - port: {{ .Values.alertmanager.service.port }}
+      targetPort: {{ .Values.alertmanager.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "grafana-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+{{- end }}

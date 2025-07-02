@@ -1,0 +1,30 @@
+{{- if .Values.otelCollector.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.otelCollector.service.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "tempo-stack.otelCollector.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.otelCollector.service.type }}
+  ports:
+    - port: {{ index .Values.otelCollector.service.ports "otlp-grpc" }}
+      targetPort: otlp-grpc
+      protocol: TCP
+      name: otlp-grpc
+    - port: {{ index .Values.otelCollector.service.ports "otlp-http" }}
+      targetPort: otlp-http
+      protocol: TCP
+      name: otlp-http
+    - port: {{ .Values.otelCollector.service.ports.health }}
+      targetPort: health
+      protocol: TCP
+      name: health
+    - port: {{ .Values.otelCollector.service.ports.metrics }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "tempo-stack.otelCollector.selectorLabels" . | nindent 4 }}
+{{- end }}

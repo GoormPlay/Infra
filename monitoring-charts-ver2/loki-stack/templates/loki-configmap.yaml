@@ -1,0 +1,71 @@
+{{- if .Values.loki.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-loki-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "loki-stack.loki.labels" . | nindent 4 }}
+data:
+  loki.yaml: |
+    auth_enabled: {{ .Values.loki.config.auth_enabled }}
+    
+    server:
+      http_listen_port: {{ .Values.loki.config.server.http_listen_port }}
+      grpc_listen_port: {{ .Values.loki.config.server.grpc_listen_port }}
+    
+    ingester:
+      lifecycler:
+        address: {{ .Values.loki.config.ingester.lifecycler.address }}
+        ring:
+          kvstore:
+            store: {{ .Values.loki.config.ingester.lifecycler.ring.kvstore.store }}
+          replication_factor: {{ .Values.loki.config.ingester.lifecycler.ring.replication_factor }}
+        final_sleep: {{ .Values.loki.config.ingester.lifecycler.final_sleep }}
+      chunk_idle_period: {{ .Values.loki.config.ingester.chunk_idle_period }}
+      chunk_retain_period: {{ .Values.loki.config.ingester.chunk_retain_period }}
+      max_chunk_age: {{ .Values.loki.config.ingester.max_chunk_age }}
+      chunk_target_size: {{ .Values.loki.config.ingester.chunk_target_size }}
+      chunk_encoding: {{ .Values.loki.config.ingester.chunk_encoding }}
+      wal:
+        enabled: true
+        dir: /loki/wal
+    
+    schema_config:
+      configs:
+        {{- range .Values.loki.config.schema_config.configs }}
+        - from: {{ .from }}
+          store: {{ .store }}
+          object_store: {{ .object_store }}
+          schema: {{ .schema }}
+          index:
+            prefix: {{ .index.prefix }}
+            period: {{ .index.period }}
+        {{- end }}
+    
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: {{ .Values.loki.config.storage_config.boltdb_shipper.active_index_directory }}
+        cache_location: {{ .Values.loki.config.storage_config.boltdb_shipper.cache_location }}
+        shared_store: {{ .Values.loki.config.storage_config.boltdb_shipper.shared_store }}
+      filesystem:
+        directory: {{ .Values.loki.config.storage_config.filesystem.directory }}
+    
+    compactor:
+      working_directory: /loki/compactor
+      shared_store: filesystem
+    
+    limits_config:
+      enforce_metric_name: {{ .Values.loki.config.limits_config.enforce_metric_name }}
+      reject_old_samples: {{ .Values.loki.config.limits_config.reject_old_samples }}
+      reject_old_samples_max_age: {{ .Values.loki.config.limits_config.reject_old_samples_max_age }}
+      ingestion_rate_mb: {{ .Values.loki.config.limits_config.ingestion_rate_mb }}
+      ingestion_burst_size_mb: {{ .Values.loki.config.limits_config.ingestion_burst_size_mb }}
+      max_streams_per_user: {{ .Values.loki.config.limits_config.max_streams_per_user }}
+      max_line_size: {{ .Values.loki.config.limits_config.max_line_size }}
+    
+    # Retention configuration based on monitoring design document (7d)
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: {{ .Values.loki.config.storage.retention_period }}
+{{- end }}

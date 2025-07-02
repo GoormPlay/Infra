@@ -1,0 +1,17 @@
+apiVersion: v2
+name: tempo-stack
+description: A Helm chart for Tempo distributed tracing stack with OpenTelemetry Collector
+type: application
+version: 0.1.0
+appVersion: "2.3.0"
+keywords:
+  - tempo
+  - tracing
+  - opentelemetry
+  - observability
+home: https://grafana.com/oss/tempo/
+sources:
+  - https://github.com/grafana/tempo
+maintainers:
+  - name: Monitoring Team
+    email: monitoring@example.com

@@ -1,0 +1,55 @@
+{{- if .Values.tempo.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tempo-stack.fullname" . }}-tempo-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "tempo-stack.tempo.labels" . | nindent 4 }}
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: {{ .Values.tempo.config.server.http_listen_port }}
+      grpc_listen_port: {{ .Values.tempo.config.server.grpc_listen_port }}
+    
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: {{ .Values.tempo.config.distributor.receivers.otlp.protocols.grpc.endpoint }}
+            http:
+              endpoint: {{ .Values.tempo.config.distributor.receivers.otlp.protocols.http.endpoint }}
+        jaeger:
+          protocols:
+            grpc:
+              endpoint: {{ .Values.tempo.config.distributor.receivers.jaeger.protocols.grpc.endpoint }}
+            thrift_http:
+              endpoint: {{ .Values.tempo.config.distributor.receivers.jaeger.protocols.thrift_http.endpoint }}
+    
+    ingester:
+      max_block_duration: {{ .Values.tempo.config.ingester.max_block_duration }}
+    
+    compactor:
+      compaction:
+        block_retention: {{ .Values.tempo.retention.period }}
+    
+    storage:
+      trace:
+        backend: {{ .Values.tempo.storage.backend }}
+        {{- if eq .Values.tempo.storage.backend "local" }}
+        local:
+          path: {{ .Values.tempo.storage.local.path }}
+        {{- else if eq .Values.tempo.storage.backend "s3" }}
+        s3:
+          bucket: {{ .Values.tempo.storage.s3.bucket }}
+          endpoint: {{ .Values.tempo.storage.s3.endpoint }}
+          access_key: {{ .Values.tempo.storage.s3.access_key }}
+          secret_key: {{ .Values.tempo.storage.s3.secret_key }}
+          region: {{ .Values.tempo.storage.s3.region }}
+          insecure: {{ .Values.tempo.storage.s3.insecure }}
+        {{- end }}
+        pool:
+          max_workers: {{ .Values.tempo.config.storage.trace.pool.max_workers }}
+          queue_depth: {{ .Values.tempo.config.storage.trace.pool.queue_depth }}
+{{- end }}

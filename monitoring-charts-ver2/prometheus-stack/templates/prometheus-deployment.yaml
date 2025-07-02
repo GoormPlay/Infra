@@ -1,0 +1,100 @@
+{{- if .Values.prometheus.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "prometheus-stack.fullname" . }}-prometheus
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "prometheus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "prometheus-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: prometheus
+  template:
+    metadata:
+      labels:
+        {{- include "prometheus-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: prometheus
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/prometheus-configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "prometheus-stack.fullname" . }}-prometheus
+      containers:
+      - name: prometheus
+        image: "{{ .Values.prometheus.image.repository }}:{{ .Values.prometheus.image.tag }}"
+        imagePullPolicy: {{ .Values.prometheus.image.pullPolicy }}
+        args:
+          - --config.file=/etc/prometheus/prometheus.yml
+          - --storage.tsdb.path=/prometheus/
+          - --storage.tsdb.retention.time={{ .Values.prometheus.retention.time }}
+          - --storage.tsdb.retention.size={{ .Values.prometheus.retention.size }}
+          - --web.console.libraries=/etc/prometheus/console_libraries
+          - --web.console.templates=/etc/prometheus/consoles
+          - --web.enable-lifecycle
+          - --web.enable-admin-api
+          {{- if .Values.prometheus.externalUrl }}
+          - --web.external-url={{ .Values.prometheus.externalUrl }}
+          {{- end }}
+        ports:
+        - name: web
+          containerPort: 9090
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: web
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: web
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 4
+          failureThreshold: 3
+        resources:
+          {{- toYaml .Values.prometheus.resources | nindent 10 }}
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/prometheus
+        - name: storage-volume
+          mountPath: /prometheus
+        {{- if .Values.ruleFiles.enabled }}
+        - name: rules-volume
+          mountPath: /etc/prometheus/rules
+        {{- end }}
+      volumes:
+      - name: config-volume
+        configMap:
+          name: {{ include "prometheus-stack.fullname" . }}-prometheus-config
+      {{- if .Values.ruleFiles.enabled }}
+      - name: rules-volume
+        configMap:
+          name: {{ include "prometheus-stack.fullname" . }}-prometheus-rules
+      {{- end }}
+      - name: storage-volume
+        {{- if .Values.prometheus.storage.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ include "prometheus-stack.fullname" . }}-prometheus-storage
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- with .Values.prometheus.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.prometheus.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.prometheus.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

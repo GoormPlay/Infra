@@ -1,0 +1,114 @@
+{{- if and .Values.prometheus.enabled .Values.ruleFiles.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "prometheus-stack.fullname" . }}-prometheus-rules
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "prometheus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+data:
+  basic-rules.yml: |
+    groups:
+    - name: basic.rules
+      rules:
+      # High-level availability rule
+      - record: instance:up:rate5m
+        expr: rate(up[5m])
+      
+      # HTTP request rate
+      - record: instance:http_requests:rate5m
+        expr: rate(http_requests_total[5m])
+      
+      # HTTP error rate
+      - record: instance:http_errors:rate5m
+        expr: rate(http_requests_total{status_code=~"5.."}[5m])
+      
+      # HTTP error ratio
+      - record: instance:http_error_ratio:rate5m
+        expr: |
+          (
+            instance:http_errors:rate5m
+          /
+            instance:http_requests:rate5m
+          )
+      
+      # HTTP duration quantiles
+      - record: instance:http_duration_seconds:p99:5m
+        expr: histogram_quantile(0.99, rate(http_duration_seconds_bucket[5m]))
+      
+      - record: instance:http_duration_seconds:p95:5m
+        expr: histogram_quantile(0.95, rate(http_duration_seconds_bucket[5m]))
+      
+      - record: instance:http_duration_seconds:p50:5m
+        expr: histogram_quantile(0.50, rate(http_duration_seconds_bucket[5m]))
+
+    - name: slo.rules
+      rules:
+      # SLO: Availability >= 99.9%
+      - record: slo:availability:rate5m
+        expr: avg(up) by (job, service)
+      
+      # SLO: Response time <= 1s for 95% of requests
+      - record: slo:response_time_sli:rate5m
+        expr: |
+          (
+            rate(http_duration_seconds_bucket{le="1"}[5m])
+          /
+            rate(http_duration_seconds_count[5m])
+          )
+      
+      # SLO: Error rate <= 1%
+      - record: slo:error_rate:rate5m
+        expr: |
+          (
+            rate(http_requests_total{status_code=~"5.."}[5m])
+          /
+            rate(http_requests_total[5m])
+          )
+
+    - name: infrastructure.rules
+      rules:
+      # Node CPU usage
+      - record: node:cpu_utilization:rate5m
+        expr: |
+          (
+            1 - rate(node_cpu_seconds_total{mode="idle"}[5m])
+          ) * 100
+      
+      # Node memory usage
+      - record: node:memory_utilization:ratio
+        expr: |
+          (
+            1 - (
+              node_memory_MemAvailable_bytes
+            /
+              node_memory_MemTotal_bytes
+            )
+          ) * 100
+      
+      # Node disk usage
+      - record: node:disk_utilization:ratio
+        expr: |
+          (
+            1 - (
+              node_filesystem_avail_bytes{fstype!="tmpfs"}
+            /
+              node_filesystem_size_bytes{fstype!="tmpfs"}
+            )
+          ) * 100
+
+    - name: kubernetes.rules
+      rules:
+      # Pod CPU usage
+      - record: pod:cpu_usage:rate5m
+        expr: rate(container_cpu_usage_seconds_total{container!="POD",container!=""}[5m])
+      
+      # Pod memory usage
+      - record: pod:memory_usage:bytes
+        expr: container_memory_working_set_bytes{container!="POD",container!=""}
+      
+      # Pod restart rate
+      - record: pod:restart_rate:rate5m
+        expr: rate(kube_pod_container_status_restarts_total[5m])
+{{- end }}

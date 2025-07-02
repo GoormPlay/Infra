@@ -1,0 +1,20 @@
+apiVersion: v2
+name: grafana-stack
+description: A Helm chart for Grafana and Alertmanager visualization and alerting stack
+type: application
+version: 0.1.0
+appVersion: "1.0"
+keywords:
+  - grafana
+  - alertmanager
+  - monitoring
+  - observability
+  - visualization
+  - alerting
+home: https://github.com/your-org/monitoring-charts
+sources:
+  - https://github.com/grafana/grafana
+  - https://github.com/prometheus/alertmanager
+maintainers:
+  - name: DevOps Team
+    email: devops@company.com

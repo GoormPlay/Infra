@@ -1,0 +1,71 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": true,
+      "title": "🔍 Explore Logs",
+      "tooltip": "Open Loki Explore",
+      "type": "link",
+      "url": "/explore?orgId=1&left=%5B%22${__from}%22,%22${__to}%22,%22Loki%22,%7B%22expr%22:%22%7Bservice%3D%5C%22${service}%5C%22%7D%22%7D%5D"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": true,
+      "title": "🔗 Explore Traces",
+      "tooltip": "Open Tempo Explore",
+      "type": "link",
+      "url": "/explore?orgId=1&left=%5B%22${__from}%22,%22${__to}%22,%22Tempo%22,%7B%22query%22:%22%7Bservice.name%3D%5C%22${service}%5C%22%7D%22%7D%5D"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": true,
+      "title": "📊 Explore Metrics",
+      "tooltip": "Open Prometheus Explore",
+      "type": "link",
+      "url": "/explore?orgId=1&left=%5B%22${__from}%22,%22${__to}%22,%22Prometheus%22,%7B%22expr%22:%22http_requests_total%7Bservice%3D%5C%22${service}%5C%22%7D%22%7D%5D"
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "panels": [],
+      "title": "🚨 SLO Status & Alert Overview",
+      "type": "row"
+    }

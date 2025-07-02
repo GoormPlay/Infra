@@ -1,0 +1,221 @@
+\documentclass[11pt,a4paper]{article}
+
+% 패키지 로드
+\usepackage[utf8]{inputenc}
+\usepackage{kotex}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{afterpage}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\usepackage{fontawesome5}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% tightlist 정의 추가
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+% Shaded 환경 정의
+\usepackage{fancyvrb}
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+
+% 색상 정의
+\definecolor{finopsblue}{RGB}{0,102,204}
+\definecolor{finopsgreen}{RGB}{0,153,76}
+\definecolor{finopsorange}{RGB}{255,153,0}
+\definecolor{finopsred}{RGB}{220,53,69}
+\definecolor{finopsgray}{RGB}{108,117,125}
+\definecolor{alertred}{RGB}{220,53,69}
+\definecolor{warningyellow}{RGB}{255,193,7}
+\definecolor{successgreen}{RGB}{40,167,69}
+\definecolor{infoblue}{RGB}{23,162,184}
+\definecolor{lightgray}{RGB}{248,249,250}
+
+% 하이퍼링크 설정
+\hypersetup{
+    colorlinks=true,
+    linkcolor=finopsblue,
+    filecolor=finopsblue,
+    urlcolor=finopsblue,
+    citecolor=finopsblue
+}
+
+% 폰트 설정
+\usepackage{fontspec}
+\setmainfont{NanumBarunGothic}
+\setsansfont{NanumBarunGothic}
+\setmonofont{NanumGothicCoding}
+
+% 헤더/푸터 설정
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{finopsblue}{\textbf{FinOps 월간 보고서}}}
+\fancyhead[R]{\textcolor{finopsgray}{\today}}
+\fancyfoot[C]{\textcolor{finopsgray}{\thepage}}
+\renewcommand{\headrulewidth}{2pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{finopsblue}\leaders\hrule height \headrulewidth\hfill}}
+
+% 섹션 제목 스타일
+\titleformat{\section}
+{\color{finopsblue}\Large\bfseries}
+{\thesection}{1em}{}
+[\color{finopsblue}\titlerule]
+
+\titleformat{\subsection}
+{\color{finopsblue}\large\bfseries}
+{\thesubsection}{1em}{}
+
+\titleformat{\subsubsection}
+{\color{finopsgray}\normalsize\bfseries}
+{\thesubsubsection}{1em}{}
+
+% 커스텀 박스 정의
+\newtcolorbox{alertbox}{
+    colback=alertred!10,
+    colframe=alertred,
+    boxrule=2pt,
+    arc=3pt,
+    left=10pt,
+    right=10pt,
+    top=10pt,
+    bottom=10pt,
+    fonttitle=\bfseries,
+    title={\faExclamationTriangle\ 긴급 알림}
+}
+
+\newtcolorbox{warningbox}{
+    colback=warningyellow!10,
+    colframe=warningyellow,
+    boxrule=2pt,
+    arc=3pt,
+    left=10pt,
+    right=10pt,
+    top=10pt,
+    bottom=10pt,
+    fonttitle=\bfseries,
+    title={\faExclamationCircle\ 주의사항}
+}
+
+\newtcolorbox{successbox}{
+    colback=successgreen!10,
+    colframe=successgreen,
+    boxrule=2pt,
+    arc=3pt,
+    left=10pt,
+    right=10pt,
+    top=10pt,
+    bottom=10pt,
+    fonttitle=\bfseries,
+    title={\faCheckCircle\ 성공 지표}
+}
+
+\newtcolorbox{infobox}{
+    colback=infoblue!10,
+    colframe=infoblue,
+    boxrule=2pt,
+    arc=3pt,
+    left=10pt,
+    right=10pt,
+    top=10pt,
+    bottom=10pt,
+    fonttitle=\bfseries,
+    title={\faInfoCircle\ 정보}
+}
+
+% 표 스타일 개선
+\renewcommand{\arraystretch}{1.3}
+
+% 제목 페이지 설정
+\title{
+    \vspace{-2cm}
+    \begin{center}
+    {\Huge\color{finopsblue}\textbf{AWS FinOps 월간 보고서}}\\[1cm]
+    {\Large\color{finopsgray}비용 최적화 및 거버넌스 현황}\\[0.3cm]
+    {\large\color{finopsgray}\today}
+    \end{center}
+    \vspace{1cm}
+}
+
+\author{}
+\date{}
+
+% 문서 시작
+\begin{document}
+
+% 제목 페이지
+\maketitle
+\thispagestyle{empty}
+
+\vfill
+
+\begin{center}
+\begin{tcolorbox}[width=0.8\textwidth,colback=lightgray,colframe=finopsgray,arc=5pt]
+\centering
+\textbf{\Large 보고서 개요}\\[0.5cm]
+\begin{tabular}{ll}
+\textbf{보고 기간:} & 2025년 6월 \\
+\textbf{분석 범위:} & 전체 AWS 계정 \\
+\textbf{주요 지표:} & 비용, 사용량, 최적화 기회 \\
+\textbf{작성자:} & FinOps 팀 \\
+\end{tabular}
+\end{tcolorbox}
+\end{center}
+
+\newpage
+
+% 목차
+\tableofcontents
+\newpage
+
+$body$
+
+\end{document}

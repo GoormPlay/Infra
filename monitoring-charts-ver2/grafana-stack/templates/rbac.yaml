@@ -1,0 +1,28 @@
+{{- if .Values.grafana.sidecar.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-sidecar
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "watch", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-sidecar
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "grafana-stack.fullname" . }}-sidecar
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "grafana-stack.serviceAccountName" . }}
+    namespace: {{ .Values.global.namespace }}
+{{- end }}

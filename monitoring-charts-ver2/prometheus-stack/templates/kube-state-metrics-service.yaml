@@ -1,0 +1,24 @@
+{{- if .Values.kubeStateMetrics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.kubeStateMetrics.service.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "prometheus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: kube-state-metrics
+spec:
+  type: {{ .Values.kubeStateMetrics.service.type }}
+  ports:
+  - port: {{ .Values.kubeStateMetrics.service.port }}
+    targetPort: {{ .Values.kubeStateMetrics.service.targetPort }}
+    protocol: TCP
+    name: http-metrics
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+    name: telemetry
+  selector:
+    {{- include "prometheus-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: kube-state-metrics
+{{- end }}

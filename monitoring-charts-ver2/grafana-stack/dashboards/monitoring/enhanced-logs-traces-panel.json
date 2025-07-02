@@ -1,0 +1,35 @@
+{
+  "datasource": "Loki",
+  "gridPos": {
+    "h": 12,
+    "w": 24,
+    "x": 0,
+    "y": 28
+  },
+  "id": 8,
+  "options": {
+    "showLabels": true,
+    "showTime": true,
+    "sortOrder": "Descending",
+    "wrapLogMessage": true,
+    "enableLogDetails": true,
+    "dedupStrategy": "none"
+  },
+  "targets": [
+    {
+      "expr": "{service=\"enhanced-test-app\"} |= \"error\" or \"ERROR\" or \"timeout\" or \"failed\" or \"trace_id\"",
+      "refId": "A"
+    }
+  ],
+  "title": "🔍 Enhanced Logs with Trace IDs (Click trace_id to jump to traces)",
+  "type": "logs",
+  "transformations": [
+    {
+      "id": "extractFields",
+      "options": {
+        "format": "json",
+        "source": "line"
+      }
+    }
+  ]
+}

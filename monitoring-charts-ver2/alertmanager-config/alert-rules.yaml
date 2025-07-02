@@ -1,0 +1,90 @@
+groups:
+- name: slo.rules
+  rules:
+  - alert: HighErrorRate
+    expr: |
+      (
+        sum(rate(http_requests_total{status_code=~"5.."}[5m])) /
+        sum(rate(http_requests_total[5m]))
+      ) * 100 > 1
+    for: 2m
+    labels:
+      severity: critical
+      service: "{{ $labels.service }}"
+    annotations:
+      summary: "High error rate detected for {{ $labels.service }}"
+      description: "Error rate is {{ $value }}% for {{ $labels.service }} for more than 2 minutes"
+      runbook_url: "https://runbooks.example.com/high-error-rate"
+
+  - alert: HighResponseTime
+    expr: |
+      histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) * 1000 > 1000
+    for: 5m
+    labels:
+      severity: warning
+      service: "{{ $labels.service }}"
+    annotations:
+      summary: "High response time detected for {{ $labels.service }}"
+      description: "95th percentile response time is {{ $value }}ms for {{ $labels.service }}"
+      runbook_url: "https://runbooks.example.com/high-response-time"
+
+  - alert: ServiceDown
+    expr: up{job=~".*test-app.*"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: "{{ $labels.job }}"
+    annotations:
+      summary: "Service {{ $labels.job }} is down"
+      description: "Service {{ $labels.job }} has been down for more than 1 minute"
+      runbook_url: "https://runbooks.example.com/service-down"
+
+  - alert: HighCPUUsage
+    expr: |
+      rate(container_cpu_usage_seconds_total{pod=~".*test-app.*"}[5m]) * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+      service: "{{ $labels.pod }}"
+    annotations:
+      summary: "High CPU usage detected for {{ $labels.pod }}"
+      description: "CPU usage is {{ $value }}% for {{ $labels.pod }}"
+      runbook_url: "https://runbooks.example.com/high-cpu-usage"
+
+  - alert: HighMemoryUsage
+    expr: |
+      (container_memory_working_set_bytes{pod=~".*test-app.*"} / container_spec_memory_limit_bytes{pod=~".*test-app.*"}) * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+      service: "{{ $labels.pod }}"
+    annotations:
+      summary: "High memory usage detected for {{ $labels.pod }}"
+      description: "Memory usage is {{ $value }}% for {{ $labels.pod }}"
+      runbook_url: "https://runbooks.example.com/high-memory-usage"
+
+- name: business.rules
+  rules:
+  - alert: LowOrderCreationRate
+    expr: |
+      sum(rate(business_events_total{event_type="order_created"}[5m])) < 0.1
+    for: 10m
+    labels:
+      severity: warning
+      service: "business-metrics"
+    annotations:
+      summary: "Low order creation rate detected"
+      description: "Order creation rate is {{ $value }} orders/second, which is below normal"
+      runbook_url: "https://runbooks.example.com/low-order-rate"
+
+  - alert: HighDatabaseTimeouts
+    expr: |
+      sum(rate(application_errors_total{error_type="database_timeout"}[5m])) > 0.05
+    for: 3m
+    labels:
+      severity: critical
+      service: "database"
+    annotations:
+      summary: "High database timeout rate detected"
+      description: "Database timeout rate is {{ $value }} timeouts/second"
+      runbook_url: "https://runbooks.example.com/database-timeouts"

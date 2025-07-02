@@ -1,0 +1,24 @@
+{{- if and .Values.loki.enabled .Values.loki.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-loki-storage
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "loki-stack.loki.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- range .Values.loki.persistence.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.loki.persistence.size | quote }}
+  {{- if .Values.loki.persistence.storageClass }}
+  {{- if (eq "-" .Values.loki.persistence.storageClass) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: "{{ .Values.loki.persistence.storageClass }}"
+  {{- end }}
+  {{- end }}
+{{- end }}

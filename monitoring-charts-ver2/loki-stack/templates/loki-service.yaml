@@ -1,0 +1,18 @@
+{{- if .Values.loki.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.loki.service.name }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "loki-stack.loki.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.loki.service.type }}
+  ports:
+  - name: http-metrics
+    port: {{ .Values.loki.service.port }}
+    protocol: TCP
+    targetPort: {{ .Values.loki.service.targetPort }}
+  selector:
+    {{- include "loki-stack.loki.selectorLabels" . | nindent 4 }}
+{{- end }}

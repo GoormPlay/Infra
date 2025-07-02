@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-otel-collector
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "grafana-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: otel-collector
+  template:
+    metadata:
+      labels:
+        {{- include "grafana-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: otel-collector
+    spec:
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:0.89.0
+        args:
+        - --config=/etc/otel-collector-config/otel-collector.yaml
+        ports:
+        - containerPort: 4317
+          name: otlp-grpc
+        - containerPort: 4318
+          name: otlp-http
+        - containerPort: 14250
+          name: jaeger-grpc
+        - containerPort: 14268
+          name: jaeger-http
+        - containerPort: 8888
+          name: metrics
+        - containerPort: 8889
+          name: prometheus
+        - containerPort: 13133
+          name: health
+        volumeMounts:
+        - name: otel-collector-config
+          mountPath: /etc/otel-collector-config
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: otel-collector-config
+        configMap:
+          name: {{ include "grafana-stack.fullname" . }}-otel-collector-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-otel-collector
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: otel-collector
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8888"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    {{- include "grafana-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: otel-collector
+  ports:
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+  - name: otlp-http
+    port: 4318
+    targetPort: 4318
+  - name: jaeger-grpc
+    port: 14250
+    targetPort: 14250
+  - name: jaeger-http
+    port: 14268
+    targetPort: 14268
+  - name: metrics
+    port: 8888
+    targetPort: 8888
+  - name: prometheus
+    port: 8889
+    targetPort: 8889
+  - name: health
+    port: 13133
+    targetPort: 13133

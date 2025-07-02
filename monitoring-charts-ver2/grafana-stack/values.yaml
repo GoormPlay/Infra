@@ -1,0 +1,222 @@
+# Grafana Configuration
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "10.2.0"
+    pullPolicy: IfNotPresent
+  
+# Service configuration
+  service:
+    type: NodePort
+    port: 3000
+    targetPort: 3000
+    nodePort: 31000
+    annotations: {}
+
+  
+  # Ingress configuration for external access
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+    hosts:
+      - host: grafana.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+    #  - secretName: grafana-tls
+    #    hosts:
+    #      - grafana.local
+  
+  # LoadBalancer configuration (alternative to Ingress)
+  loadBalancer:
+    enabled: false
+    annotations: {}
+    # loadBalancerIP: ""
+  
+  # Admin credentials
+  adminUser: admin
+  adminPassword: admin123  # Change this in production
+  
+  # Grafana configuration
+  config:
+    server:
+      root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
+      serve_from_sub_path: false
+    security:
+      admin_user: "{{ .Values.grafana.adminUser }}"
+      admin_password: "{{ .Values.grafana.adminPassword }}"
+    database:
+      type: sqlite3
+    session:
+      provider: memory
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+    log:
+      mode: console
+      level: info
+  
+  # Sidecar configuration for automatic datasource and dashboard discovery
+  sidecar:
+    enabled: true
+    image:
+      repository: quay.io/kiwigrid/k8s-sidecar
+      tag: "1.25.2"
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+      folder: /etc/grafana/provisioning/datasources
+      searchNamespace: ALL
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      folder: /tmp/dashboards
+      folderAnnotation: grafana_folder
+      searchNamespace: ALL
+      provider:
+        name: sidecarProvider
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        allowUiUpdates: true
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  # Persistence for Grafana data
+  persistence:
+    enabled: true
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+    annotations: {}
+  
+  # Node selector and tolerations
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Alertmanager Configuration
+alertmanager:
+  enabled: true
+  image:
+    repository: prom/alertmanager
+    tag: "v0.26.0"
+    pullPolicy: IfNotPresent
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 9093
+    targetPort: 9093
+    annotations: {}
+  
+  # Alertmanager configuration
+  config:
+    global:
+      smtp_smarthost: 'localhost:587'
+      smtp_from: 'alertmanager@company.com'
+      smtp_auth_username: ''
+      smtp_auth_password: ''
+      slack_api_url: ''  # Set your Slack webhook URL here
+    
+    route:
+      group_by: ['alertname']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'web.hook'
+    
+    receivers:
+      - name: 'web.hook'
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'  # Default placeholder URL
+            channel: '#alerts'
+            title: 'Alert: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Severity:* {{ .Labels.severity }}
+              *Instance:* {{ .Labels.instance }}
+              {{ end }}
+            send_resolved: true
+      
+      - name: 'email'
+        email_configs:
+          - to: 'admin@company.com'
+            subject: 'Alert: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+            html: |
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Severity: {{ .Labels.severity }}
+              Instance: {{ .Labels.instance }}
+              {{ end }}
+    
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'dev', 'instance']
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # Persistence for Alertmanager data
+  persistence:
+    enabled: true
+    storageClassName: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 2Gi
+    annotations: {}
+  
+  # Node selector and tolerations
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Global settings
+global:
+  namespace: observability
+
+# Service Account
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+  
+# Service Monitor for Prometheus scraping
+serviceMonitor:
+  enabled: true
+  namespace: observability
+  labels: {}
+  interval: 30s
+  scrapeTimeout: 10s

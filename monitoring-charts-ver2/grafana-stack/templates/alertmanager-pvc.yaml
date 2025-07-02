@@ -1,0 +1,29 @@
+{{- if and .Values.alertmanager.enabled .Values.alertmanager.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-alertmanager-pvc
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+  {{- with .Values.alertmanager.persistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- range .Values.alertmanager.persistence.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.alertmanager.persistence.size | quote }}
+  {{- if .Values.alertmanager.persistence.storageClassName }}
+  {{- if (eq "-" .Values.alertmanager.persistence.storageClassName) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.alertmanager.persistence.storageClassName | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}

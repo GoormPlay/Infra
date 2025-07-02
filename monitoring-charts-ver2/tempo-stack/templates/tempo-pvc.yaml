@@ -1,0 +1,18 @@
+{{- if and .Values.tempo.enabled .Values.tempo.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "tempo-stack.fullname" . }}-tempo-storage
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "tempo-stack.tempo.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.tempo.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.tempo.persistence.size }}
+  {{- if .Values.tempo.persistence.storageClass }}
+  storageClassName: {{ .Values.tempo.persistence.storageClass }}
+  {{- end }}
+{{- end }}

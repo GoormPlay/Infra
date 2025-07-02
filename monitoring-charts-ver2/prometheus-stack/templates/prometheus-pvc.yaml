@@ -1,0 +1,19 @@
+{{- if and .Values.prometheus.enabled .Values.prometheus.storage.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "prometheus-stack.fullname" . }}-prometheus-storage
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "prometheus-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+spec:
+  accessModes:
+    - {{ .Values.prometheus.storage.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.prometheus.storage.size }}
+  {{- if .Values.prometheus.storage.storageClass }}
+  storageClassName: {{ .Values.prometheus.storage.storageClass }}
+  {{- end }}
+{{- end }}

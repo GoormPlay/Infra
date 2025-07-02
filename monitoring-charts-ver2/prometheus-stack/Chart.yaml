@@ -1,0 +1,19 @@
+apiVersion: v2
+name: prometheus-stack
+description: A Helm chart for Prometheus metrics collection stack
+type: application
+version: 0.1.0
+appVersion: "2.45.0"
+keywords:
+  - prometheus
+  - monitoring
+  - metrics
+  - observability
+home: https://prometheus.io/
+sources:
+  - https://github.com/prometheus/prometheus
+  - https://github.com/kubernetes/kube-state-metrics
+  - https://github.com/prometheus/node_exporter
+maintainers:
+  - name: Observability Team
+    email: observability@company.com

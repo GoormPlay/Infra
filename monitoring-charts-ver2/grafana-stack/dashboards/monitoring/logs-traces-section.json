@@ -1,0 +1,107 @@
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "id": 103,
+      "panels": [],
+      "title": "🔍 Logs & Traces Integration - Perfect Drill-Down",
+      "type": "row"
+    },
+    {
+      "datasource": "Loki",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 9,
+      "options": {
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none"
+      },
+      "targets": [
+        {
+          "expr": "{service=\"${service}\"} | json | level=~\"error|ERROR|warning|WARNING\"",
+          "refId": "A",
+          "legendFormat": "Error/Warning Logs"
+        },
+        {
+          "expr": "{service=\"${service}\"} | json | error_type!=\"\" | line_format \"🚨 {{.timestamp}} [{{.level}}] {{.event}} | ERROR: {{.error_type}} | 🔗 TraceID: {{.trace_id}} | 📍 {{.endpoint}}\"",
+          "refId": "B",
+          "legendFormat": "Application Errors with TraceID"
+        }
+      ],
+      "title": "📄 Error Logs with Trace IDs (Click TraceID to jump to traces)",
+      "type": "logs",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "json",
+            "source": "line"
+          }
+        }
+      ]
+    },
+    {
+      "datasource": "Loki",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "id": 10,
+      "options": {
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none"
+      },
+      "targets": [
+        {
+          "expr": "{service=\"${service}\"} | json | processing_time > 2.0 | line_format \"⚡ SLOW: {{.endpoint}} took {{.processing_time}}s | 🔗 TraceID: {{.trace_id}}\"",
+          "refId": "A"
+        }
+      ],
+      "title": "⚡ Slow Requests (>2s) with TraceIDs",
+      "type": "logs"
+    },
+    {
+      "datasource": "Loki",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "id": 11,
+      "options": {
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none"
+      },
+      "targets": [
+        {
+          "expr": "{service=\"${service}\"} | json | trace_id!=\"\" | line_format \"🔗 {{.timestamp}} [{{.level}}] {{.event}} | TraceID: {{.trace_id}} | {{.endpoint}} {{.method}} {{.status_code}}\"",
+          "refId": "A"
+        }
+      ],
+      "title": "🔗 All Logs with Trace IDs (Click to correlate)",
+      "type": "logs"
+    }

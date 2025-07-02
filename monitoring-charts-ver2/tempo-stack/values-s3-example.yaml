@@ -1,0 +1,59 @@
+# Example values file for S3 storage configuration
+# Copy this file and modify according to your needs
+
+# Global settings
+global:
+  namespace: observability
+
+# Tempo configuration with S3 storage
+tempo:
+  enabled: true
+  
+  # Use S3 storage instead of local
+  storage:
+    backend: s3
+    s3:
+      bucket: "my-tempo-traces-bucket"
+      endpoint: "s3.amazonaws.com"
+      region: "us-west-2"
+      access_key: "YOUR_ACCESS_KEY"
+      secret_key: "YOUR_SECRET_KEY"
+      insecure: false
+  
+  # Increase retention for production
+  retention:
+    period: 7d
+  
+  # Disable persistence when using S3
+  persistence:
+    enabled: false
+  
+  # Production resource limits
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+# OpenTelemetry Collector configuration
+otelCollector:
+  enabled: true
+  
+  # Production resource limits
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+# Enable ServiceMonitor for Prometheus scraping
+serviceMonitor:
+  enabled: true
+  interval: 15s
+  scrapeTimeout: 10s
+  labels:
+    release: prometheus

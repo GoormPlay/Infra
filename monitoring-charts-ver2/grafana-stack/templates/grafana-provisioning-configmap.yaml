@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-provisioning-datasources
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+  datasources.yaml: |
+{{ .Files.Get "provisioning/datasources/datasources.yaml" | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-provisioning-dashboards
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+  dashboards.yaml: |
+{{ .Files.Get "provisioning/dashboards/dashboards.yaml" | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-dashboards-kubernetes
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+{{- range $path, $fileContents := .Files.Glob "dashboards/kubernetes/*.json" }}
+  {{ base $path }}: |
+{{ $fileContents | toString | indent 4 }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-dashboards-monitoring
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+{{- range $path, $fileContents := .Files.Glob "dashboards/monitoring/*.json" }}
+  {{ base $path }}: |
+{{ $fileContents | toString | indent 4 }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-dashboards-applications
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+{{- range $path, $fileContents := .Files.Glob "dashboards/applications/*.json" }}
+  {{ base $path }}: |
+{{ $fileContents | toString | indent 4 }}
+{{- end }}

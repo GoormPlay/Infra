@@ -1,0 +1,95 @@
+{{- if and .Values.fluentbit.enabled .Values.fluentbit.daemonset.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "loki-stack.fullname" . }}-fluent-bit
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "loki-stack.fluentbit.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "loki-stack.fluentbit.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "loki-stack.fluentbit.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/fluentbit-configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "loki-stack.fluentbit.serviceAccountName" . }}
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+      containers:
+      - name: fluent-bit
+        image: "{{ .Values.fluentbit.image.repository }}:{{ .Values.fluentbit.image.tag }}"
+        imagePullPolicy: {{ .Values.fluentbit.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 2020
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 3
+        resources:
+          {{- toYaml .Values.fluentbit.resources | nindent 10 }}
+        volumeMounts:
+        - name: config
+          mountPath: /fluent-bit/etc/
+        {{- range .Values.fluentbit.volumeMounts }}
+        - name: {{ .name }}
+          mountPath: {{ .mountPath }}
+          {{- if .readOnly }}
+          readOnly: {{ .readOnly }}
+          {{- end }}
+        {{- end }}
+        env:
+        - name: FLUENT_CONF
+          value: fluent-bit.conf
+        - name: FLUENT_OPT
+          value: ""
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "loki-stack.fullname" . }}-fluent-bit-config
+      {{- range .Values.fluentbit.volumes }}
+      - name: {{ .name }}
+        {{- if .hostPath }}
+        hostPath:
+          path: {{ .hostPath.path }}
+          {{- if .hostPath.type }}
+          type: {{ .hostPath.type }}
+          {{- end }}
+        {{- else if .emptyDir }}
+        emptyDir: {}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.fluentbit.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.fluentbit.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.fluentbit.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

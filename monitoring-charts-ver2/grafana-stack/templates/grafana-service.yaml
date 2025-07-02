@@ -1,0 +1,59 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-grafana
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+  {{- with .Values.grafana.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.grafana.service.type }}
+  {{- if and (eq .Values.grafana.service.type "LoadBalancer") .Values.grafana.loadBalancer.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.grafana.loadBalancer.loadBalancerIP }}
+  {{- end }}
+  ports:
+    - port: {{ .Values.grafana.service.port }}
+      targetPort: {{ .Values.grafana.service.targetPort }}
+      {{- if eq .Values.grafana.service.type "NodePort" }}
+      nodePort: {{ .Values.grafana.service.nodePort }}
+      {{- end }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "grafana-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+{{- end }}
+
+---
+{{- if and .Values.grafana.enabled .Values.grafana.loadBalancer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-grafana-lb
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+  {{- with .Values.grafana.loadBalancer.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: LoadBalancer
+  {{- if .Values.grafana.loadBalancer.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.grafana.loadBalancer.loadBalancerIP }}
+  {{- end }}
+  ports:
+    - port: {{ .Values.grafana.service.port }}
+      targetPort: {{ .Values.grafana.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "grafana-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+{{- end }}

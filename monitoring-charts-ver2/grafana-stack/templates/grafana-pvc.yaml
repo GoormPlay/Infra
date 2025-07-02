@@ -1,0 +1,29 @@
+{{- if and .Values.grafana.enabled .Values.grafana.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "grafana-stack.fullname" . }}-grafana-pvc
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "grafana-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+  {{- with .Values.grafana.persistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- range .Values.grafana.persistence.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.grafana.persistence.size | quote }}
+  {{- if .Values.grafana.persistence.storageClassName }}
+  {{- if (eq "-" .Values.grafana.persistence.storageClassName) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.grafana.persistence.storageClassName | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}
